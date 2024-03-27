@@ -1,0 +1,8 @@
+[tool]
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+tag_format = "v$version"
+
+[tool.poetry.dependencies]
+catch2 = "v3.4.0"
