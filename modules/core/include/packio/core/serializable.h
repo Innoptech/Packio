@@ -54,12 +54,6 @@ namespace packio
     }
 
     // ************************************************************************************************************
-    // Concepts
-    // ************************************************************************************************************
-    template<typename T, typename... Args>
-    concept ConvertibleToT = (std::is_convertible_v<Args, T> && ...);
-
-    // ************************************************************************************************************
     // Function to implement for serializable instances
     // ************************************************************************************************************
     struct SerializableVersion {
@@ -111,7 +105,6 @@ namespace packio
     // ************************************************************************************************************
     // Define helper struct DeserializeHelper outside of Deserializer
     template<typename U, int MAJOR, int MINOR, int PATCH, typename T, typename... Args>
-    requires ConvertibleToT<U, T> && ConvertibleToT<U, Args...>
     struct DeserializeHelper {
         static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
             if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
@@ -148,7 +141,7 @@ namespace packio
             SerializableVersion version{};
             stream.read(reinterpret_cast<char*>(&version), sizeof(version));
 
-            return static_cast<U>(DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(stream, signature));
+            return DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(stream, signature);
         }
     };
 
