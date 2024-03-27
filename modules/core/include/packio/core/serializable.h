@@ -1,6 +1,6 @@
 #ifndef SERIALIZE_CORE_SERIALIZABLE_H
 #define SERIALIZE_CORE_SERIALIZABLE_H
-#include "serialpack/core/version.h"
+#include "packio/core/version.h"
 #include <iostream>
 #include <vector>
 #include <array>
