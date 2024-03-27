@@ -103,7 +103,7 @@ namespace packio
      * @param stream The input stream to read from.
      * @return The deserialized penalty object.
      */
-    template<typename U, typename T, int MAJOR=-1, int MINOR=-1, int PATCH=-1>
+    template<typename U, typename T=U, int MAJOR=-1, int MINOR=-1, int PATCH=-1>
     U deserializeBody(std::istream &stream);
 
     // ************************************************************************************************************

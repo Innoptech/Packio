@@ -45,6 +45,13 @@ namespace packio
         return testutils::TestMock1{};
     }
 
+    // Or
+    template<>
+    testutils::TestMock1 deserializeBody<testutils::TestMock1>(std::istream &stream)
+    {
+        return testutils::TestMock1{};
+    }
+
     // ######################################################################################
     // TestMock2
     // ######################################################################################
@@ -62,6 +69,13 @@ namespace packio
 
     template<>
     testutils::TestMockVariant deserializeBody<testutils::TestMockVariant, testutils::TestMock2>(std::istream &stream)
+    {
+        return testutils::TestMock2{};
+    }
+
+    // Or
+    template<>
+    testutils::TestMock2 deserializeBody<testutils::TestMock2>(std::istream &stream)
     {
         return testutils::TestMock2{};
     }

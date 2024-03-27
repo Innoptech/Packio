@@ -37,6 +37,11 @@ template<>
 FooVariant deserializeBody<FooVariant, Foo1>(std::istream &stream) {
     return Foo1{};
 }
+//Or 
+template<>
+Foo1 deserializeBody<Foo1>(std::istream &stream) {
+    return Foo1{};
+}
 
 // Implement requirements for Foo2
 template<>
@@ -51,6 +56,11 @@ void serializeBody(const Foo2 &serializable, std::ostream &stream) {
 
 template<>
 FooVariant deserializeBody<FooVariant, Foo2>(std::istream &stream) {
+    return Foo2{};
+}
+//Or 
+template<>
+Foo2 deserializeBody<Foo2>(std::istream &stream) {
     return Foo2{};
 }
 
