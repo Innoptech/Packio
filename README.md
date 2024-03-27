@@ -60,8 +60,23 @@ serialize(Foo1{}, std::cout); // Could be any ostream
 using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible
 auto result = Deserializer<FooVariant>::deserialize<Foo1, Foo2>(std::cin); // Could be any istream
 ```
-## Installation
-Currently, Packio is a header-only library, so you just need to include the necessary headers in your project.
+# Integrate to your codebase
+### Smart method
+Include this repository with CMAKE Fetchcontent and link your executable/library to `packio` library.   
+Choose if you want to fetch a specific branch or tag using `GIT_TAG`. Use the `master` branch to keep updated with the latest improvements.
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    packio
+    GIT_REPOSITORY https://github.com/Innoptech/Packio.git
+    GIT_TAG master
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(packio)
+```
+### Naïve method
+Simply add [serializable.h](modules/core/include/packio/core/serializable.h) to your codebase.
 
 ## Contributing
 If you'd like to contribute to Packio, feel free to fork the repository and submit a pull request with your changes. Contributions are always welcome!
