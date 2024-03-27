@@ -67,13 +67,13 @@ Choose if you want to fetch a specific branch or tag using `GIT_TAG`. Use the `m
 ```cmake
 include(FetchContent)
 FetchContent_Declare(
-    packio
+    libpackio
     GIT_REPOSITORY https://github.com/Innoptech/Packio.git
     GIT_TAG master
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
 )
-FetchContent_MakeAvailable(packio)
+FetchContent_MakeAvailable(libpackio)
 ```
 ### Naïve method
 Simply add [serializable.h](modules/core/include/packio/core/serializable.h) to your codebase.
