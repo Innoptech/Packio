@@ -6,7 +6,8 @@
 #include <array>
 #include <typeinfo>
 
-namespace serialpack::core {
+namespace packio
+{
     class Serializable;
 
     // ************************************************************************************************************
@@ -79,6 +80,7 @@ namespace serialpack::core {
     class Deserializer {
         // Helper struct to handle deserialization
         template<typename... Args>
+        requires ConvertibleToT<U, Args...>
         struct DeserializeHelper;
 
     public:
@@ -99,18 +101,13 @@ namespace serialpack::core {
     // Define helper struct DeserializeHelper outside of Deserializer
     template<typename U>
     template<typename... Args>
+    requires ConvertibleToT<U, Args...>
     struct Deserializer<U>::DeserializeHelper {
         static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
             // Implementation of DeserializeHelper
             return U{}; // Placeholder return value
         }
     };
-
-    template<typename T, IsSerializableInstance... Args>
-    requires ConvertibleToT<T, Args...>
-    auto deserialize(std::istream& stream) {
-        return Deserializer<T>::template deserialize<Args...>(stream);
-    }
 
     template<IsSerializableInstance T>
     void serialize(const T &serializable, std::ostream &stream)

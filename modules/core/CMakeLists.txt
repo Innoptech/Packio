@@ -1,4 +1,4 @@
-message(STATUS "Adding serialize::core module")
+message(STATUS "Adding packio module")
 
 #-------------------------------------------------------------------------------
 # Ensure requirements
@@ -18,11 +18,11 @@ message(STATUS "Adding serialize::core module")
 #-------------------------------------------------------------------------------
 # CMAKE CONFIGURATIONS
 #-------------------------------------------------------------------------------
-configure_file(include/serialpack/core/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/serialpack/core/version.h)
+configure_file(include/packio/core/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/packio/core/version.h)
 
 #-------------------------------------------------------------------------------
 # Build module
 #-------------------------------------------------------------------------------
-add_library(serialize_core INTERFACE)
-target_include_directories(serialize_core INTERFACE include/ ${CMAKE_CURRENT_BINARY_DIR}/generated/)
-add_library(serialize::core ALIAS serialize_core)
+add_library(packio_core INTERFACE)
+target_include_directories(packio_core INTERFACE include/ ${CMAKE_CURRENT_BINARY_DIR}/generated/)
+add_library(packio ALIAS packio_core)

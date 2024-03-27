@@ -1,16 +1,16 @@
 #ifndef SERIALIZE_TESTUTILS_SERIALIZABLEINSTANCES_H
 #define SERIALIZE_TESTUTILS_SERIALIZABLEINSTANCES_H
-#include "serialpack/core/serializable.h"
-#include "serialpack/core/version.h"
+#include "packio/core/serializable.h"
+#include "packio/core/version.h"
 #include <variant>
 
-namespace serialpack::testutils {
-    class TestMock1 : public core::SerializableInstance {
+namespace packio::testutils {
+    class TestMock1 : public SerializableInstance {
     public:
         TestMock1() = default;
     };
 
-    class TestMock2 : public core::SerializableInstance
+    class TestMock2 : public SerializableInstance
     {
     public:
         TestMock2() = default;
@@ -19,7 +19,7 @@ namespace serialpack::testutils {
     using TestMockVariant = std::variant<TestMock1, TestMock2>;
 }
 
-namespace serialpack::core
+namespace packio
 {
     // ######################################################################################
     // TestMock1
