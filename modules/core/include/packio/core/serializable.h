@@ -103,8 +103,8 @@ namespace packio
      * @param stream The input stream to read from.
      * @return The deserialized penalty object.
      */
-    template<typename T, int MAJOR=-1, int MINOR=-1, int PATCH=-1>
-    T deserializeBody(std::istream &stream);
+    template<typename U, typename T, int MAJOR=-1, int MINOR=-1, int PATCH=-1>
+    U deserializeBody(std::istream &stream);
 
     // ************************************************************************************************************
     // Available function for serializable instances
@@ -115,7 +115,7 @@ namespace packio
     struct DeserializeHelper {
         static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
             if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
-                return deserializeBody<T, MAJOR, MINOR, PATCH>(stream);
+                return deserializeBody<U, T, MAJOR, MINOR, PATCH>(stream);
             } else {
                 return DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(stream, signature);
             }
@@ -127,7 +127,7 @@ namespace packio
     struct DeserializeHelper<U, MAJOR, MINOR, PATCH, T> {
         static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
             if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
-                return deserializeBody<T, MAJOR, MINOR, PATCH>(stream);
+                return deserializeBody<U, T, MAJOR, MINOR, PATCH>(stream);
             } else {
                 throw std::runtime_error{"Attempt to deserialize an unrecognised serializable"};
             }
@@ -151,8 +151,6 @@ namespace packio
             return static_cast<U>(DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(stream, signature));
         }
     };
-
-
 
     template<typename T>
     void serialize(const T &serializable, std::ostream &stream)

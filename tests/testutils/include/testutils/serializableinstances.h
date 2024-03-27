@@ -40,7 +40,7 @@ namespace packio
     }
 
     template<>
-    testutils::TestMock1 deserializeBody<testutils::TestMock1>(std::istream &stream)
+    testutils::TestMockVariant deserializeBody<testutils::TestMockVariant, testutils::TestMock1>(std::istream &stream)
     {
         return testutils::TestMock1{};
     }
@@ -61,7 +61,7 @@ namespace packio
     }
 
     template<>
-    testutils::TestMock2 deserializeBody<testutils::TestMock2>(std::istream &stream)
+    testutils::TestMockVariant deserializeBody<testutils::TestMockVariant, testutils::TestMock2>(std::istream &stream)
     {
         return testutils::TestMock2{};
     }

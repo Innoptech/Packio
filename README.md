@@ -20,6 +20,7 @@ Suppose you have the following Serializable types:
 ```cpp
 struct Foo1 {};
 struct Foo2 {};
+using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible
 
 // Implement requirements for Foo1
 template<>
@@ -33,7 +34,7 @@ void serializeBody(const Foo1 &serializable, std::ostream &stream) {
 }
 
 template<>
-Foo1 deserializeBody<Foo1>(std::istream &stream) {
+FooVariant deserializeBody<FooVariant, Foo1>(std::istream &stream) {
     return Foo1{};
 }
 
@@ -49,7 +50,7 @@ void serializeBody(const Foo2 &serializable, std::ostream &stream) {
 }
 
 template<>
-Foo1 deserializeBody<Foo2>(std::istream &stream) {
+FooVariant deserializeBody<FooVariant, Foo2>(std::istream &stream) {
     return Foo2{};
 }
 
@@ -57,7 +58,6 @@ Foo1 deserializeBody<Foo2>(std::istream &stream) {
 serialize(Foo1{}, std::cout); // Could be any ostream
 
 // Deserialize
-using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible
 auto result = Deserializer<FooVariant>::deserialize<Foo1, Foo2>(std::cin); // Could be any istream
 ```
 # Integrate to your codebase
