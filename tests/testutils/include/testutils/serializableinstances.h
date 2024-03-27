@@ -5,15 +5,18 @@
 #include <variant>
 
 namespace packio::testutils {
-    class TestMock1 : public SerializableInstance {
+    class TestMock1 {
     public:
+        static constexpr int ID = 1;
         TestMock1() = default;
+        [[nodiscard]] static auto getId() {return ID;}
     };
 
-    class TestMock2 : public SerializableInstance
-    {
+    class TestMock2 {
     public:
+        static constexpr int ID = 2;
         TestMock2() = default;
+        [[nodiscard]] static auto getId() {return ID;}
     };
 
     using TestMockVariant = std::variant<TestMock1, TestMock2>;

@@ -5,23 +5,57 @@
 #include <vector>
 #include <array>
 #include <typeinfo>
+#include <sstream>
+#include <string>
 
 namespace packio
 {
-    class Serializable;
+    enum class VERSION_COMPARISON{GREATER=-1, EQUAL, LESS};
 
-    // ************************************************************************************************************
-    // Child registration mechanism
-    // ************************************************************************************************************
-    class SerializableInstance {};
+    struct Version
+    {
+        int major, minor, patch;
 
+        [[nodiscard]] std::string to_string() const {
+            return std::to_string(major)+"."+std::to_string(minor)+"."+std::to_string(patch);
+        }
+    };
+
+    inline auto operator>(const Version &v1, const Version &v2) {
+        if (v1.major > v2.major)
+            return true;
+        if (v1.major == v2.major) {
+            if (v1.minor > v2.minor)
+                return true;
+            if (v1.minor == v2.minor)
+                if (v1.patch > v2.patch)
+                    return true;
+        }
+        return false;
+    }
+
+    inline auto operator==(const Version &v1, const Version &v2) {
+        return v1.major == v2.major && v1.minor == v2.minor && v1.patch == v2.patch;
+    }
+
+    // Function to parse version strings into a tuple of integers
+    inline Version parseVersion(const std::string& version) {
+        int major, minor, patch;
+        char dot;
+        std::istringstream(version) >> major >> dot >> minor >> dot >> patch;
+        return {major, minor, patch};
+    }
+
+    // Function to compare two version strings
+    inline VERSION_COMPARISON compareVersion(const Version& v1, const Version& v2) {
+        if (v1 == v2) return VERSION_COMPARISON::EQUAL;
+        if (v1 > v2) return VERSION_COMPARISON::GREATER;
+        return VERSION_COMPARISON::LESS;
+    }
 
     // ************************************************************************************************************
     // Concepts
     // ************************************************************************************************************
-    template<typename T>
-    concept IsSerializableInstance = std::is_base_of_v<SerializableInstance, T>;
-
     template<typename T, typename... Args>
     concept ConvertibleToT = (std::is_convertible_v<Args, T> && ...);
 
@@ -43,7 +77,7 @@ namespace packio
      * @param serializable The serializable implementation.
      * @return The serializable signature as an array of 16 bytes.
      */
-    template<IsSerializableInstance T>
+    template<typename T>
     constexpr std::array<char, 16> serializeSignature();
 
     /**
@@ -56,7 +90,7 @@ namespace packio
      * @param serializable The serializable implementation to serialize.
      * @param stream The output stream to write to.
      */
-    template<IsSerializableInstance T>
+    template<typename T>
     void serializeBody(const T &serializable, std::ostream &stream);
 
     /**
@@ -69,47 +103,58 @@ namespace packio
      * @param stream The input stream to read from.
      * @return The deserialized penalty object.
      */
-    template<IsSerializableInstance T>
+    template<typename T, int MAJOR=-1, int MINOR=-1, int PATCH=-1>
     T deserializeBody(std::istream &stream);
 
     // ************************************************************************************************************
     // Available function for serializable instances
     // ************************************************************************************************************
-    // Define Deserializer class template
-    template<typename U>
-    class Deserializer {
-        // Helper struct to handle deserialization
-        template<typename... Args>
-        requires ConvertibleToT<U, Args...>
-        struct DeserializeHelper;
+    // Define helper struct DeserializeHelper outside of Deserializer
+    template<typename U, int MAJOR, int MINOR, int PATCH, typename T, typename... Args>
+    requires ConvertibleToT<U, T> && ConvertibleToT<U, Args...>
+    struct DeserializeHelper {
+        static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
+            if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
+                return deserializeBody<T, MAJOR, MINOR, PATCH>(stream);
+            } else {
+                return DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(stream, signature);
+            }
+        }
+    };
 
+    // Base case for DeserializeHelper
+    template<typename U, int MAJOR, int MINOR, int PATCH, typename T>
+    struct DeserializeHelper<U, MAJOR, MINOR, PATCH, T> {
+        static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
+            if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
+                return deserializeBody<T, MAJOR, MINOR, PATCH>(stream);
+            } else {
+                throw std::runtime_error{"Attempt to deserialize an unrecognised serializable"};
+            }
+        }
+    };
+
+    // Define Deserializer class template
+    template<typename U, int MAJOR=-1, int MINOR=-1, int PATCH=-1>
+    class Deserializer {
     public:
         // Function to deserialize a Serializable type
-        template<IsSerializableInstance... Args>
+        template<typename... Args>
         requires (sizeof...(Args) > 0)
-        static auto deserialize(std::istream& stream) {
+        static auto deserialize(std::istream& stream, const std::string &minVersion="") {
             std::array<char, 16> signature{};
             stream.read(signature.data(), sizeof(char) * 16);
 
             SerializableVersion version{};
             stream.read(reinterpret_cast<char*>(&version), sizeof(version));
 
-            return static_cast<U>(DeserializeHelper<Args...>::deserialize(stream, signature));
+            return static_cast<U>(DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(stream, signature));
         }
     };
 
-    // Define helper struct DeserializeHelper outside of Deserializer
-    template<typename U>
-    template<typename... Args>
-    requires ConvertibleToT<U, Args...>
-    struct Deserializer<U>::DeserializeHelper {
-        static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
-            // Implementation of DeserializeHelper
-            return U{}; // Placeholder return value
-        }
-    };
 
-    template<IsSerializableInstance T>
+
+    template<typename T>
     void serialize(const T &serializable, std::ostream &stream)
     {
         auto signature = serializeSignature<T>();
