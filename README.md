@@ -3,31 +3,13 @@
 Packio is a C++ library for serialization and deserialization of data types. It provides a flexible and efficient way to convert data into a binary format for storage or transmission and vice versa.
 
 ## Features
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <style>
-        /* Remove default list style */
-        ul {
-            list-style: none;
-            padding-left: 0;
-        }
-    </style>
-</head>
-<body>
-    <h1>Packio: General Purpose Serializer/Deserializer</h1>
-    <p>Packio is a C++ library for serialization and deserialization of data types. It provides a flexible and efficient way to convert data into a binary format for storage or transmission and vice versa.</p>
-
-<h2>Features</h2>
 <ul>
-    <li>&#10003; Serialize data to a binary stream</li>
-    <li>&#10003; Deserialize data from a binary stream</li>
-    <li>&#10003; Support for custom serialization and deserialization methods</li>
-    <li>&#10003; Efficient handling of complex data structures</li>
-    <li>&#10003; Flexible and extensible design</li>
+<li style="list-style-type: '✅'">Serialize data to a binary stream
+<li style="list-style-type: '✅'">Deserialize data from a binary stream
+<li style="list-style-type: '✅'">Support for custom serialization and deserialization methods
+<li style="list-style-type: '✅'">Efficient handling of complex data structures
+<li style="list-style-type: '✅'">Flexible and extensible design
 </ul>
-</body>
-</html>
 
 ## Usage
 To use Packio in your C++ projects, include the necessary headers and link against the Packio library. Then, you can use the provided serializer and deserializer classes to convert your data types to and from binary format.
