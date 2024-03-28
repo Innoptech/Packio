@@ -146,7 +146,7 @@ namespace packio
     };
 
     template<typename T>
-    void serialize(const T &serializable, std::ostream &stream)
+    inline void serialize(const T &serializable, std::ostream &stream)
     {
         auto signature = serializeSignature<T>();
         SerializableVersion version{SERIALPACK_VER_MAJOR, SERIALPACK_VER_MINOR, SERIALPACK_VER_PATCH};
