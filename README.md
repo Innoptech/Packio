@@ -20,7 +20,7 @@ Suppose you have the following Serializable types:
 ```cpp
 struct Foo1 {};
 struct Foo2 {};
-using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible
+using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible like std::variant or Type Erasure
 
 // Implement requirements for Foo1
 template<>
