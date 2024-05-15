@@ -18,6 +18,8 @@ To use Packio in your C++ projects, include the necessary headers and link again
 Suppose you have the following Serializable types:
 
 ```cpp
+#include "packio/core/serializable.h"
+
 struct Foo1 {};
 struct Foo2 {};
 using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible like std::variant or Type Erasure
