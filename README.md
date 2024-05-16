@@ -18,57 +18,61 @@ To use Packio in your C++ projects, include the necessary headers and link again
 Suppose you have the following Serializable types:
 
 ```cpp
+#include "packio/core/serializable.h"
+
 struct Foo1 {};
 struct Foo2 {};
-using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible
+using FooVariant = std::variant<Foo1, Foo2>; // Define a convertible like std::variant or Type Erasure
 
-// Implement requirements for Foo1
-template<>
-constexpr auto serializeSignature<Foo1>() {
-    return std::array<char, 16>{'1'};
-}
-
-template<>
-void serializeBody(const Foo1 &serializable, std::ostream &stream) {
-    (void) serializable, stream;
-}
-
-template<>
-FooVariant deserializeBody<FooVariant, Foo1>(std::istream &stream) {
-    return Foo1{};
-}
-//Or 
-template<>
-Foo1 deserializeBody<Foo1>(std::istream &stream) {
-    return Foo1{};
-}
-
-// Implement requirements for Foo2
-template<>
-constexpr auto serializeSignature<Foo2>() {
-    return std::array<char, 16>{'2'};
-}
-
-template<>
-void serializeBody(const Foo2 &serializable, std::ostream &stream) {
-    (void) serializable, stream;
-}
-
-template<>
-FooVariant deserializeBody<FooVariant, Foo2>(std::istream &stream) {
-    return Foo2{};
-}
-//Or 
-template<>
-Foo2 deserializeBody<Foo2>(std::istream &stream) {
-    return Foo2{};
-}
+namespace packio {
+    // Implement requirements for Foo1
+    template<>
+    constexpr std::array<char, 16> serializeSignature<Foo1>() {
+        return {'1'};
+    }
+    
+    template<>
+    void serializeBody(const Foo1 &serializable, std::ostream &stream) {
+        (void) serializable, stream;
+    }
+    
+    template<>
+    FooVariant deserializeBody<FooVariant, Foo1>(std::istream &stream) {
+        return Foo1{};
+    }
+    //Or 
+    template<>
+    Foo1 deserializeBody<Foo1>(std::istream &stream) {
+        return Foo1{};
+    }
+    
+    // Implement requirements for Foo2
+    template<>
+    constexpr std::array<char, 16> serializeSignature<Foo2>() {
+        return {'2'};
+    }
+    
+    template<>
+    void serializeBody(const Foo2 &serializable, std::ostream &stream) {
+        (void) serializable, stream;
+    }
+    
+    template<>
+    FooVariant deserializeBody<FooVariant, Foo2>(std::istream &stream) {
+        return Foo2{};
+    }
+    //Or 
+    template<>
+    Foo2 deserializeBody<Foo2>(std::istream &stream) {
+        return Foo2{};
+    }
+} // namespace packio
 
 // Serialize
-serialize(Foo1{}, std::cout); // Could be any ostream
+packio::serialize(Foo1{}, std::cout); // Could be any ostream
 
 // Deserialize
-auto result = Deserializer<FooVariant>::deserialize<Foo1, Foo2>(std::cin); // Could be any istream
+auto result = packio::Deserializer<FooVariant>::deserialize<Foo1, Foo2>(std::cin); // Could be any istream
 ```
 # Integrate to your codebase
 ### Smart method
