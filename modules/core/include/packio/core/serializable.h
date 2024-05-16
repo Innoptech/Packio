@@ -145,13 +145,33 @@ namespace packio
         }
     };
 
+    /**
+     * Deserialize a serializable object of type T from the input stream.
+     *
+     * @tparam T The type of the serializable object to deserialize.
+     * @param stream The input stream to deserialize from.
+     * @return An instance of type T deserialized from the input stream.
+     */
+    template<typename T>
+    inline T deserialize(std::istream &stream)
+    {
+        return packio::Deserializer<T>::template deserialize<T>(stream);
+    }
+
+    /**
+     * Serialize the given serializable object to the output stream.
+     *
+     * @tparam T The type of the serializable object to serialize.
+     * @param serializable The serializable object to serialize.
+     * @param stream The output stream to serialize to.
+     */
     template<typename T>
     inline void serialize(const T &serializable, std::ostream &stream)
     {
         auto signature = serializeSignature<T>();
         SerializableVersion version{SERIALPACK_VER_MAJOR, SERIALPACK_VER_MINOR, SERIALPACK_VER_PATCH};
-        stream.write(signature.data(), sizeof(decltype(signature)));
-        stream.write((char*)&version, sizeof(decltype(version)));
+        stream.write(signature.data(), sizeof(signature));
+        stream.write((char*)&version, sizeof(version));
         serializeBody(serializable, stream);
     }
 } //namespace serialize::core
