@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.25.2)
 #-------------------------------------------------------------------------------
 # Project Definitions
 #-------------------------------------------------------------------------------
-project(Serialpack
-        DESCRIPTION "A simple SERIALPACKr utility"
+project(Packio
+        DESCRIPTION "A simple serializer/deserializer utility"
         LANGUAGES CXX)
 
 #-------------------------------------------------------------------------------
