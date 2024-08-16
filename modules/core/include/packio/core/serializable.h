@@ -8,6 +8,14 @@
 #include <sstream>
 #include <string>
 
+#ifdef __GNUC__
+#define PACKIO_PACKED(...) __VA_ARGS__ __attribute__((__packed__))
+#elif _MSC_VER
+#define PACKIO_PACKED(...) __pragma( pack(push, 1) ) __VA_ARGS__ __pragma( pack(pop))
+#else
+    #error "Unsupported compiler"
+#endif
+
 namespace packio
 {
     enum class VERSION_COMPARISON{GREATER=-1, EQUAL, LESS};
