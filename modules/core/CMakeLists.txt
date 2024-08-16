@@ -3,8 +3,9 @@ message(STATUS "Adding packio module")
 #-------------------------------------------------------------------------------
 # Ensure requirements
 #-------------------------------------------------------------------------------
-# No requirements
-
+if (NOT TARGET zlib)
+    message( FATAL_ERROR "zlib could not be found")
+endif()
 #-------------------------------------------------------------------------------
 # CMAKE OPTIONS
 #-------------------------------------------------------------------------------
@@ -25,4 +26,5 @@ configure_file(include/packio/core/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/gene
 #-------------------------------------------------------------------------------
 add_library(packio_core INTERFACE)
 target_include_directories(packio_core INTERFACE include/ ${CMAKE_CURRENT_BINARY_DIR}/generated/)
+target_link_libraries(packio_core INTERFACE zlib)
 add_library(packio ALIAS packio_core)

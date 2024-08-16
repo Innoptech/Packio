@@ -31,6 +31,7 @@ SOFTWARE.
 #include <typeinfo>
 #include <sstream>
 #include <string>
+#include <zlib.h>
 
 #ifdef __GNUC__
 #define PACKIO_PACKED(...) __VA_ARGS__ __attribute__((__packed__))
@@ -152,6 +153,39 @@ namespace packio
     struct DeserializeHelper<U, MAJOR, MINOR, PATCH, T> {
         static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
             if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
+                // Read the compression flag
+                bool header;
+                stream.read(reinterpret_cast<char*>(&header), sizeof(bool));
+
+                if (header) {
+                    // Step 3: Read uncompressed and compressed size
+                    uLongf uncompressedSize;
+                    stream.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
+                    uLongf compressedSize;
+                    stream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
+
+                    // Step 4: Read compressed data
+                    std::vector<char> compressedData(compressedSize);
+                    stream.read(compressedData.data(), compressedSize);
+
+                    // Step 5: Decompress the data
+                    std::vector<char> uncompressedData(uncompressedSize);
+                    int result = uncompress(reinterpret_cast<Bytef*>(uncompressedData.data()), &uncompressedSize,
+                                            reinterpret_cast<const Bytef*>(compressedData.data()), compressedSize);
+
+                    if (result != Z_OK) {
+                        throw std::runtime_error("Decompression failed");
+                    }
+
+                    // Step 6: Deserialize from the decompressed data
+                    std::stringstream tempBuffer(std::ios::binary | std::ios::in | std::ios::out);
+                    tempBuffer.write(uncompressedData.data(), uncompressedSize);
+
+                    return deserializeBody<T>(tempBuffer);
+                } else {
+                    // No compression: directly deserialize the object body from the stream
+                    return deserializeBody<T>(stream);
+                }
                 return deserializeBody<U, T, MAJOR, MINOR, PATCH>(stream);
             } else {
                 throw std::runtime_error{"Attempt to deserialize an unrecognised serializable"};
@@ -197,14 +231,46 @@ namespace packio
      * @param serializable The serializable object to serialize.
      * @param stream The output stream to serialize to.
      */
-    template<typename T>
+    template<typename T, bool EnableCompression=true>
     inline void serialize(const T &serializable, std::ostream &stream)
     {
         auto signature = serializeSignature<T>();
         SerializableVersion version{SERIALPACK_VER_MAJOR, SERIALPACK_VER_MINOR, SERIALPACK_VER_PATCH};
+        
         stream.write(signature.data(), sizeof(signature));
-        stream.write((char*)&version, sizeof(version));
-        serializeBody(serializable, stream);
+        stream.write(reinterpret_cast<const char*>(&version), sizeof(version));
+
+        // Write the compression flag
+        constexpr bool isCompressionEnabled{EnableCompression};
+        stream.write(reinterpret_cast<const char*>(&isCompressionEnabled), sizeof(isCompressionEnabled));
+
+        if constexpr (EnableCompression) {
+            // Serialize to a temporary buffer
+            std::stringstream tempBuffer(std::ios::binary | std::ios::out);
+            serializeBody(serializable, tempBuffer);
+
+            // Get uncompressed data
+            std::string uncompressedData = tempBuffer.str();
+            const auto uncompressedSize = static_cast<uLongf>(uncompressedData.size());
+
+            // Step 4: Compress the data
+            std::vector<char> compressedData(compressBound(uncompressedSize));
+            uLongf compressedSize = compressedData.size();
+            int result = compress(reinterpret_cast<Bytef*>(compressedData.data()), &compressedSize,
+                                reinterpret_cast<const Bytef*>(uncompressedData.data()), uncompressedSize);
+
+            if (result != Z_OK) {
+                throw std::runtime_error("Compression failed");
+            }
+
+            // Write the uncompressed size, the compressed size and the compressed data
+            stream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
+            stream.write(reinterpret_cast<const char*>(&compressedSize), sizeof(compressedSize));
+            stream.write(compressedData.data(), compressedSize);
+        } else {
+            // No compression: directly serialize the object body to the stream
+            serializeBody(serializable, stream);
+        }
     }
 } //namespace serialize::core
 #endif //SERIALIZE_CORE_SERIALIZABLE_H

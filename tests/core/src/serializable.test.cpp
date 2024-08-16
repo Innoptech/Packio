@@ -8,15 +8,30 @@ using namespace packio::testutils;
 
 TEMPLATE_TEST_CASE("Serializing Test", "[packio]", TestMock1, TestMock2)
 {
-    TestType mocker{};
+    SECTION("With compression (default)")
+    {
+        TestType mocker{};
 
-    std::stringstream stream{};
-    serialize(mocker, stream);
+        std::stringstream stream{};
+        serialize(mocker, stream);
 
-    stream.seekg(0);
-    auto const restitutedMock = Deserializer<TestMockVariant>::deserialize<TestMock1, TestMock2>(stream);
-    REQUIRE(std::holds_alternative<TestType>(restitutedMock));
-    REQUIRE(std::get<TestType>(restitutedMock).getId() == mocker.getId());
+        stream.seekg(0);
+        auto const restitutedMock = Deserializer<TestMockVariant>::deserialize<TestMock1, TestMock2>(stream);
+        REQUIRE(std::holds_alternative<TestType>(restitutedMock));
+        REQUIRE(std::get<TestType>(restitutedMock).getId() == mocker.getId());
+    }
+    SECTION("Without compression")
+    {
+        TestType mocker{};
+
+        std::stringstream stream{};
+        serialize<TestType, false>(mocker, stream);
+
+        stream.seekg(0);
+        auto const restitutedMock = Deserializer<TestMockVariant>::deserialize<TestMock1, TestMock2>(stream);
+        REQUIRE(std::holds_alternative<TestType>(restitutedMock));
+        REQUIRE(std::get<TestType>(restitutedMock).getId() == mocker.getId());
+    }
 }
 
 TEST_CASE("Serializing Test for trivial type", "[packio]")
