@@ -69,10 +69,13 @@ namespace packio {
 } // namespace packio
 
 // Serialize
-packio::serialize(Foo1{}, std::cout); // Could be any ostream
+packio::serialize(Foo1{}, std::cout); // Can be any ostream
 
 // Deserialize
-auto result = packio::Deserializer<FooVariant>::deserialize<Foo1, Foo2>(std::cin); // Could be any istream
+auto result = packio::Deserializer<FooVariant>::deserialize<Foo1, Foo2>(std::cin); // Can be any istream
+
+// Deserialize known type
+auto result = packio::deserialize<Foo1>(std::cin); // Can be any istream
 ```
 # Integrate to your codebase
 ### Smart method
