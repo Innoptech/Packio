@@ -183,8 +183,35 @@ namespace packio
 
                     return deserializeBody<T>(tempBuffer);
                 } else {
-                    // No compression: directly deserialize the object body from the stream
-                    return deserializeBody<T>(stream);
+                    // No compression: read the serialized data (excluding the checksum)
+                    std::string serializedData;
+                    std::streampos startPos = stream.tellg();
+                    stream.seekg(0, std::ios::end);
+                    std::streampos endPos = stream.tellg();
+                    std::streamsize dataSize = endPos - startPos - sizeof(uLong);
+
+                    serializedData.resize(dataSize);
+                    stream.seekg(startPos);
+                    stream.read(&serializedData[0], dataSize);
+
+                    // Extract checksum (last 4 bytes in the stream)
+                    uLong crc32ChecksumStored;
+                    stream.read(reinterpret_cast<char*>(&crc32ChecksumStored), sizeof(crc32ChecksumStored));
+
+                    // Compute checksum for the serialized data
+                    uLong crc32ChecksumComputed = crc32(0L, Z_NULL, 0);
+                    crc32ChecksumComputed = crc32(crc32ChecksumComputed,
+                                                  reinterpret_cast<const Bytef*>(serializedData.data()),
+                                                  serializedData.size());
+
+                    // Verify checksum
+                    if (crc32ChecksumComputed != crc32ChecksumStored) {
+                        throw std::runtime_error("Checksum verification failed: Data corruption detected");
+                    }
+
+                    // Deserialize from validated data
+                    std::istringstream validatedStream(serializedData);
+                    return deserializeBody<T>(validatedStream);
                 }
                 return deserializeBody<U, T, MAJOR, MINOR, PATCH>(stream);
             } else {
@@ -236,7 +263,7 @@ namespace packio
     {
         auto signature = serializeSignature<T>();
         SerializableVersion version{SERIALPACK_VER_MAJOR, SERIALPACK_VER_MINOR, SERIALPACK_VER_PATCH};
-        
+
         stream.write(signature.data(), sizeof(signature));
         stream.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
@@ -269,7 +296,16 @@ namespace packio
             stream.write(compressedData.data(), compressedSize);
         } else {
             // No compression: directly serialize the object body to the stream
-            serializeBody(serializable, stream);
+            std::stringstream tempBuffer(std::ios::binary | std::ios::out);
+            serializeBody(serializable, tempBuffer);
+            const std::string serializedData = tempBuffer.str();
+
+            stream.write(serializedData.data(), static_cast<long>(serializedData.size()));
+
+            // Compute checksum (CRC32)
+            uLong crc32Checksum = crc32(0L, Z_NULL, 0);
+            crc32Checksum = crc32(crc32Checksum, reinterpret_cast<const Bytef*>(serializedData.data()), serializedData.size());
+            stream.write(reinterpret_cast<const char*>(&crc32Checksum), sizeof(crc32Checksum));
         }
     }
 } //namespace serialize::core
