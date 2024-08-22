@@ -262,7 +262,7 @@ namespace packio
     inline void serialize(const T &serializable, std::ostream &stream)
     {
         auto signature = serializeSignature<T>();
-        SerializableVersion version{SERIALPACK_VER_MAJOR, SERIALPACK_VER_MINOR, SERIALPACK_VER_PATCH};
+        SerializableVersion version{PACKIO_VER_MAJOR, PACKIO_VER_MINOR, PACKIO_VER_PATCH};
 
         stream.write(signature.data(), sizeof(signature));
         stream.write(reinterpret_cast<const char*>(&version), sizeof(version));

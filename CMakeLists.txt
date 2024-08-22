@@ -49,7 +49,7 @@ endif()
 #-------------------------------------------------------------------------------
 # CMAKE OPTIONS
 #-------------------------------------------------------------------------------
-option(SERIALPACK_BUILD_TESTS "Enable the compilation of the test files." OFF)
+option(PACKIO_BUILD_TESTS "Enable the compilation of the test files." OFF)
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     add_definitions(-DDEBUG)
@@ -64,15 +64,15 @@ add_subdirectory(extern/zlib)
 #-------------------------------------------------------------------------------
 # Add components & Package in simpler header files
 #-------------------------------------------------------------------------------
-set(SERIALPACK_MODULES core)
-foreach(module ${SERIALPACK_MODULES})
+set(PACKIO_MODULES core)
+foreach(module ${PACKIO_MODULES})
     add_subdirectory(modules/${module})
 endforeach()
 
 #-------------------------------------------------------------------------------
 # Tests
 #-------------------------------------------------------------------------------
-if(SERIALPACK_BUILD_TESTS)
+if(PACKIO_BUILD_TESTS)
     ReadDependencyVersion(catch2 ${PYPROJECT_PATH})
     add_subdirectory(extern/catch2)
     # Configure automatic test registration
