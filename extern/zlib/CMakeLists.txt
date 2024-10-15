@@ -7,4 +7,5 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 )
+set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "Disable ZLib Examples")
 FetchContent_MakeAvailable(zlib)
