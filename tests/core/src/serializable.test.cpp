@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_template_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "testutils/serializableinstances.h"
 #include <sstream>
 
@@ -46,4 +47,40 @@ TEST_CASE("Serializing Test for trivial type", "[packio]")
     REQUIRE(restitutedMock.getId() == mocker.getId());
 }
 
+TEST_CASE("Data corruption in signature", "[packio]")
+{
+    TestMock1 mocker{};
 
+    std::stringstream stream{};
+    serialize(mocker, stream);
+
+    stream.seekg(0);
+
+    // Corrupt the serialized stream by changing some bytes
+    std::string serializedData = stream.str();
+    serializedData[0] = 0xFF;  // Arbitrarily corrupting byte in signature
+    std::stringstream corruptedStream(serializedData);
+
+    // Attempt to deserialize the corrupted data
+    REQUIRE_THROWS_WITH(packio::deserialize<TestMock1>(corruptedStream),
+                        Catch::Matchers::ContainsSubstring("Attempt to deserialize an unrecognised serializable"));
+}
+
+TEST_CASE("Data corruption in body", "[packio]")
+{
+    TestMock1 mocker{};
+
+    std::stringstream stream{};
+    serialize(mocker, stream);
+
+    stream.seekg(0);
+
+    // Corrupt the serialized stream by changing some bytes
+    std::string serializedData = stream.str();
+    *std::rbegin(serializedData) = 0xFF;  // Arbitrarily corrupting byte out of signature
+    std::stringstream corruptedStream(serializedData);
+
+    // Attempt to deserialize the corrupted data
+    REQUIRE_THROWS_WITH(packio::deserialize<TestMock1>(corruptedStream),
+                        Catch::Matchers::ContainsSubstring("Checksum verification failed: Data corruption detected"));
+}

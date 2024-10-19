@@ -164,9 +164,23 @@ namespace packio
                     uLongf compressedSize;
                     stream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
 
+                    // Extract checksum (last 4 bytes in the stream)
+                    uLong crc32ChecksumStored;
+                    stream.read(reinterpret_cast<char*>(&crc32ChecksumStored), sizeof(crc32ChecksumStored));
+
                     // Step 4: Read compressed data
                     std::vector<char> compressedData(compressedSize);
                     stream.read(compressedData.data(), compressedSize);
+
+                    // Compute checksum for the serialized data
+                    uLong crc32ChecksumComputed = crc32(0L, Z_NULL, 0);
+                    crc32ChecksumComputed = crc32(crc32ChecksumComputed,
+                                                  reinterpret_cast<const Bytef*>(compressedData.data()),compressedSize);
+
+                    // Verify checksum
+                    if (crc32ChecksumComputed != crc32ChecksumStored) {
+                        throw std::runtime_error("Checksum verification failed: Data corruption detected");
+                    }
 
                     // Step 5: Decompress the data
                     std::vector<char> uncompressedData(uncompressedSize);
@@ -284,7 +298,7 @@ namespace packio
             std::vector<char> compressedData(compressBound(uncompressedSize));
             uLongf compressedSize = compressedData.size();
             int result = compress(reinterpret_cast<Bytef*>(compressedData.data()), &compressedSize,
-                                reinterpret_cast<const Bytef*>(uncompressedData.data()), uncompressedSize);
+                                  reinterpret_cast<const Bytef*>(uncompressedData.data()), uncompressedSize);
 
             if (result != Z_OK) {
                 throw std::runtime_error("Compression failed");
@@ -293,7 +307,13 @@ namespace packio
             // Write the uncompressed size, the compressed size and the compressed data
             stream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
             stream.write(reinterpret_cast<const char*>(&compressedSize), sizeof(compressedSize));
-            stream.write(compressedData.data(), compressedSize);
+
+            // Compute checksum (CRC32)
+            uLong crc32Checksum = crc32(0L, Z_NULL, 0);
+            crc32Checksum = crc32(crc32Checksum, reinterpret_cast<const Bytef*>(compressedData.data()), compressedSize);
+            stream.write(reinterpret_cast<const char*>(&crc32Checksum), sizeof(crc32Checksum));
+
+            stream.write(compressedData.data(), static_cast<long>(compressedSize));
         } else {
             // No compression: directly serialize the object body to the stream
             std::stringstream tempBuffer(std::ios::binary | std::ios::out);
