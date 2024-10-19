@@ -1,3 +1,15 @@
+## v0.2.3 (2024-10-19)
+
+### Fix
+
+- add a checksum for compressed stream
+
+## v0.2.2 (2024-10-15)
+
+### Fix
+
+- ude zlib as a static lib
+
 ## v0.2.1 (2024-08-22)
 
 ### Fix
