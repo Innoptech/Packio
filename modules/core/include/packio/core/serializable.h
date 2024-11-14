@@ -32,6 +32,7 @@ SOFTWARE.
 #include <sstream>
 #include <string>
 #include <zlib.h>
+#include <stdint.h>
 
 #ifdef __GNUC__
 #define PACKIO_PACKED(...) __VA_ARGS__ __attribute__((__packed__))
