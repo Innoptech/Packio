@@ -1,3 +1,9 @@
+## v0.2.4 (2024-11-14)
+
+### Fix
+
+- include stdint.h is required for some compilers
+
 ## v0.2.3 (2024-10-19)
 
 ### Fix
