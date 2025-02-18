@@ -295,21 +295,23 @@ namespace packio
             std::string uncompressedData = tempBuffer.str();
             const auto uncompressedSize = static_cast<uLongf>(uncompressedData.size());
 
-            // Step 4: Compress the data
+            // Allocate buffer using compressBound
             std::vector<char> compressedData(compressBound(uncompressedSize));
             uLongf compressedSize = compressedData.size();
-            int result = compress(reinterpret_cast<Bytef*>(compressedData.data()), &compressedSize,
-                                  reinterpret_cast<const Bytef*>(uncompressedData.data()), uncompressedSize);
 
+            // Use compress2 with a high compression level
+            int result = compress2(reinterpret_cast<Bytef*>(compressedData.data()),
+                                   &compressedSize,
+                                   reinterpret_cast<const Bytef*>(uncompressedData.data()),
+                                   uncompressedSize,
+                                   Z_BEST_COMPRESSION);
             if (result != Z_OK) {
                 throw std::runtime_error("Compression failed");
             }
 
-            // Write the uncompressed size, the compressed size and the compressed data
+            // Write the uncompressed size, compressed size, and compute checksum (CRC32)
             stream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
             stream.write(reinterpret_cast<const char*>(&compressedSize), sizeof(compressedSize));
-
-            // Compute checksum (CRC32)
             uLong crc32Checksum = crc32(0L, Z_NULL, 0);
             crc32Checksum = crc32(crc32Checksum, reinterpret_cast<const Bytef*>(compressedData.data()), compressedSize);
             stream.write(reinterpret_cast<const char*>(&crc32Checksum), sizeof(crc32Checksum));
