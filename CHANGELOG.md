@@ -1,3 +1,9 @@
+## v0.2.5 (2025-02-18)
+
+### Fix
+
+- maximize the compression ratio
+
 ## v0.2.4 (2024-11-14)
 
 ### Fix
