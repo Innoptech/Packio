@@ -1,3 +1,9 @@
+## v0.3.0 (2025-02-27)
+
+### Feat
+
+- faster and multithreaded compression and decompression using zstd
+
 ## v0.2.5 (2025-02-18)
 
 ### Fix
