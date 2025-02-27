@@ -14,7 +14,7 @@ FetchContent_Declare(
 set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "Disable building zstd CLI program")
 set(ZSTD_BUILD_TESTS OFF CACHE BOOL "Disable building zstd tests")
 set(ZSTD_BUILD_SHARED ON CACHE BOOL "Build shared libzstd")
-set(ZSTD_BUILD_STATIC OFF CACHE BOOL "Build static libzstd")
+set(ZSTD_BUILD_STATIC ON CACHE BOOL "Build static libzstd")
 
 # Fetch and make Zstd available
 FetchContent_MakeAvailable(zstd)
