@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2024 Innoptech
+Copyright (c) 2025 Innoptech
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,15 @@ SOFTWARE.
 #ifndef SERIALIZE_CORE_SERIALIZABLE_H
 #define SERIALIZE_CORE_SERIALIZABLE_H
 #include "packio/core/version.h"
+#include "packio/core/compression.h"
 #include <iostream>
 #include <vector>
 #include <array>
 #include <typeinfo>
 #include <sstream>
 #include <string>
-#include <zlib.h>
+#include <zstd.h>
+#include <zstd_errors.h>
 #include <stdint.h>
 
 #ifdef __GNUC__
@@ -150,87 +152,104 @@ namespace packio
     };
 
     // Base case for DeserializeHelper
+    /**
+     * Deserialize the given serialized data from the input stream into type U.
+     *
+     * @tparam U      The type we expect to deserialize into.
+     * @tparam MAJOR  Expected major version.
+     * @tparam MINOR  Expected minor version.
+     * @tparam PATCH  Expected patch version.
+     * @tparam T      The original type (usually same as U, but can vary if you have custom expansions).
+     */
     template<typename U, int MAJOR, int MINOR, int PATCH, typename T>
     struct DeserializeHelper<U, MAJOR, MINOR, PATCH, T> {
-        static U deserialize(std::istream& stream, const std::array<char, 16>& signature) {
-            if (std::equal(std::begin(signature), std::end(signature), std::begin(serializeSignature<T>()))) {
-                // Read the compression flag
-                bool header;
-                stream.read(reinterpret_cast<char*>(&header), sizeof(bool));
+        static U deserialize(std::istream& stream, const std::array<char, 16>& signature)
+        {
+            // 1) Check signature
+            std::array<char, 16> expectedSig = serializeSignature<T>();
+            if (!std::equal(signature.begin(), signature.end(), expectedSig.begin())) {
+                throw std::runtime_error("Attempt to deserialize an unrecognized serializable");
+            }
 
-                if (header) {
-                    // Step 3: Read uncompressed and compressed size
-                    uLongf uncompressedSize;
-                    stream.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
-                    uLongf compressedSize;
-                    stream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
+            // 2) Read compression flag
+            bool isCompressed;
+            readAll(stream, &isCompressed, sizeof(isCompressed),
+                    "Failed to read compression flag");
 
-                    // Extract checksum (last 4 bytes in the stream)
-                    uLong crc32ChecksumStored;
-                    stream.read(reinterpret_cast<char*>(&crc32ChecksumStored), sizeof(crc32ChecksumStored));
+            if (isCompressed) {
+                // ---- COMPRESSION BRANCH ----
 
-                    // Step 4: Read compressed data
-                    std::vector<char> compressedData(compressedSize);
-                    stream.read(compressedData.data(), compressedSize);
+                // A) Read sizes + checksum
+                size_t uncompressedSize = 0;
+                readAll(stream, &uncompressedSize, sizeof(uncompressedSize),
+                        "Failed to read uncompressed size");
+                size_t compressedSize = 0;
+                readAll(stream, &compressedSize, sizeof(compressedSize),
+                        "Failed to read compressed size");
 
-                    // Compute checksum for the serialized data
-                    uLong crc32ChecksumComputed = crc32(0L, Z_NULL, 0);
-                    crc32ChecksumComputed = crc32(crc32ChecksumComputed,
-                                                  reinterpret_cast<const Bytef*>(compressedData.data()),compressedSize);
+                uint64_t checksumStored;
+                readAll(stream, &checksumStored, sizeof(checksumStored),
+                        "Failed to read checksum");
 
-                    // Verify checksum
-                    if (crc32ChecksumComputed != crc32ChecksumStored) {
-                        throw std::runtime_error("Checksum verification failed: Data corruption detected");
-                    }
+                // B) Read compressed data
+                std::vector<char> compressedData(compressedSize);
+                readAll(stream, compressedData.data(), compressedSize,
+                        "Failed to read compressed data");
 
-                    // Step 5: Decompress the data
-                    std::vector<char> uncompressedData(uncompressedSize);
-                    int result = uncompress(reinterpret_cast<Bytef*>(uncompressedData.data()), &uncompressedSize,
-                                            reinterpret_cast<const Bytef*>(compressedData.data()), compressedSize);
-
-                    if (result != Z_OK) {
-                        throw std::runtime_error("Decompression failed");
-                    }
-
-                    // Step 6: Deserialize from the decompressed data
-                    std::stringstream tempBuffer(std::ios::binary | std::ios::in | std::ios::out);
-                    tempBuffer.write(uncompressedData.data(), uncompressedSize);
-
-                    return deserializeBody<T>(tempBuffer);
-                } else {
-                    // No compression: read the serialized data (excluding the checksum)
-                    std::string serializedData;
-                    std::streampos startPos = stream.tellg();
-                    stream.seekg(0, std::ios::end);
-                    std::streampos endPos = stream.tellg();
-                    std::streamsize dataSize = endPos - startPos - sizeof(uLong);
-
-                    serializedData.resize(dataSize);
-                    stream.seekg(startPos);
-                    stream.read(&serializedData[0], dataSize);
-
-                    // Extract checksum (last 4 bytes in the stream)
-                    uLong crc32ChecksumStored;
-                    stream.read(reinterpret_cast<char*>(&crc32ChecksumStored), sizeof(crc32ChecksumStored));
-
-                    // Compute checksum for the serialized data
-                    uLong crc32ChecksumComputed = crc32(0L, Z_NULL, 0);
-                    crc32ChecksumComputed = crc32(crc32ChecksumComputed,
-                                                  reinterpret_cast<const Bytef*>(serializedData.data()),
-                                                  serializedData.size());
-
-                    // Verify checksum
-                    if (crc32ChecksumComputed != crc32ChecksumStored) {
-                        throw std::runtime_error("Checksum verification failed: Data corruption detected");
-                    }
-
-                    // Deserialize from validated data
-                    std::istringstream validatedStream(serializedData);
-                    return deserializeBody<T>(validatedStream);
+                // C) Verify checksum
+                uint64_t checksumComputed = computeChecksum(compressedData.data(), compressedSize);
+                if (checksumComputed != checksumStored) {
+                    throw std::runtime_error("Checksum verification failed: Data corruption detected");
                 }
-                return deserializeBody<U, T, MAJOR, MINOR, PATCH>(stream);
+
+                // D) Decompress
+                std::vector<char> uncompressedData = decompressZstd(
+                        compressedData.data(), compressedSize, uncompressedSize
+                );
+
+                // E) Deserialize from uncompressed data
+                std::stringstream tempBuffer(std::string(uncompressedData.begin(), uncompressedData.end()),
+                                             std::ios::binary | std::ios::in);
+                return deserializeBody<T>(tempBuffer);
+
             } else {
-                throw std::runtime_error{"Attempt to deserialize an unrecognised serializable"};
+                // ---- NO COMPRESSION ----
+
+                // A) Figure out how much data is left excluding the checksum
+                std::streampos startPos = stream.tellg();
+                stream.seekg(0, std::ios::end);
+                std::streampos endPos = stream.tellg();
+                // We expect the last 8 bytes to be the XXH64 checksum
+                if (endPos < startPos + static_cast<std::streamoff>(sizeof(uint64_t))) {
+                    throw std::runtime_error("Stream is too short (no space for checksum)");
+                }
+
+                std::streamsize dataSize = static_cast<std::streamsize>(endPos - startPos - sizeof(uint64_t));
+
+                // B) Read uncompressed data
+                std::vector<char> serializedData(dataSize);
+                stream.seekg(startPos);
+                readAll(stream, serializedData.data(), dataSize,
+                        "Failed to read uncompressed data");
+
+                // C) Read checksum
+                uint64_t checksumStored;
+                readAll(stream, &checksumStored, sizeof(checksumStored),
+                        "Failed to read checksum");
+
+                // D) Verify checksum
+                uint64_t checksumComputed = computeChecksum(serializedData.data(), dataSize);
+                if (checksumComputed != checksumStored) {
+                    throw std::runtime_error("Checksum verification failed: Data corruption detected");
+                }
+
+                // E) Deserialize from the validated data
+                std::istringstream validatedStream(
+                        std::string(serializedData.begin(), serializedData.end()),
+                        std::ios::binary
+                );
+
+                return deserializeBody<T>(validatedStream);
             }
         }
     };
@@ -266,69 +285,70 @@ namespace packio
         return packio::Deserializer<T>::template deserialize<T>(stream);
     }
 
+
     /**
-     * Serialize the given serializable object to the output stream.
+     * Serialize the given object to the output stream.
      *
-     * @tparam T The type of the serializable object to serialize.
-     * @param serializable The serializable object to serialize.
-     * @param stream The output stream to serialize to.
+     * @tparam T Type of the object to serialize.
+     * @tparam EnableCompression If true, uses Zstd compression.
      */
-    template<typename T, bool EnableCompression=true>
+    template<typename T, bool EnableCompression = true>
     inline void serialize(const T &serializable, std::ostream &stream)
     {
+        // 1) Write out "signature" (unique ID for type T)
         auto signature = serializeSignature<T>();
-        SerializableVersion version{PACKIO_VER_MAJOR, PACKIO_VER_MINOR, PACKIO_VER_PATCH};
+        writeAll(stream, signature.data(), signature.size(),
+                 "Failed to write signature");
 
-        stream.write(signature.data(), sizeof(signature));
-        stream.write(reinterpret_cast<const char*>(&version), sizeof(version));
+        // 2) Write out version info
+        SerializableVersion version {PACKIO_VER_MAJOR, PACKIO_VER_MINOR, PACKIO_VER_PATCH};
+        writeAll(stream, &version, sizeof(version),
+                 "Failed to write version");
 
-        // Write the compression flag
-        constexpr bool isCompressionEnabled{EnableCompression};
-        stream.write(reinterpret_cast<const char*>(&isCompressionEnabled), sizeof(isCompressionEnabled));
+        // 3) Write compression flag
+        constexpr bool isCompressionEnabled = EnableCompression;
+        writeAll(stream, &isCompressionEnabled, sizeof(isCompressionEnabled),
+                 "Failed to write compression flag");
+
+        // 4) Convert object to a raw byte buffer (uncompressed)
+        std::stringstream tempBuffer(std::ios::binary | std::ios::out);
+        serializeBody(serializable, tempBuffer);
+        std::string uncompressedData = tempBuffer.str();
+        const size_t uncompressedSize = uncompressedData.size();
 
         if constexpr (EnableCompression) {
-            // Serialize to a temporary buffer
-            std::stringstream tempBuffer(std::ios::binary | std::ios::out);
-            serializeBody(serializable, tempBuffer);
+            // ---- COMPRESSION BRANCH ----
 
-            // Get uncompressed data
-            std::string uncompressedData = tempBuffer.str();
-            const auto uncompressedSize = static_cast<uLongf>(uncompressedData.size());
+            // A) Compress data
+            std::vector<char> compressedData = compressZstd(
+                    uncompressedData.data(),
+                    uncompressedSize
+            );
+            const size_t compressedSize = compressedData.size();
 
-            // Allocate buffer using compressBound
-            std::vector<char> compressedData(compressBound(uncompressedSize));
-            uLongf compressedSize = compressedData.size();
+            // B) Compute checksum on compressed data
+            uint64_t checksum = computeChecksum(compressedData.data(), compressedSize);
 
-            // Use compress2 with a high compression level
-            int result = compress2(reinterpret_cast<Bytef*>(compressedData.data()),
-                                   &compressedSize,
-                                   reinterpret_cast<const Bytef*>(uncompressedData.data()),
-                                   uncompressedSize,
-                                   Z_BEST_COMPRESSION);
-            if (result != Z_OK) {
-                throw std::runtime_error("Compression failed");
-            }
-
-            // Write the uncompressed size, compressed size, and compute checksum (CRC32)
-            stream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
-            stream.write(reinterpret_cast<const char*>(&compressedSize), sizeof(compressedSize));
-            uLong crc32Checksum = crc32(0L, Z_NULL, 0);
-            crc32Checksum = crc32(crc32Checksum, reinterpret_cast<const Bytef*>(compressedData.data()), compressedSize);
-            stream.write(reinterpret_cast<const char*>(&crc32Checksum), sizeof(crc32Checksum));
-
-            stream.write(compressedData.data(), static_cast<long>(compressedSize));
+            // C) Write sizes + checksum + compressed bytes
+            writeAll(stream, &uncompressedSize, sizeof(uncompressedSize),
+                     "Failed to write uncompressed size");
+            writeAll(stream, &compressedSize, sizeof(compressedSize),
+                     "Failed to write compressed size");
+            writeAll(stream, &checksum, sizeof(checksum),
+                     "Failed to write checksum");
+            writeAll(stream, compressedData.data(), compressedSize,
+                     "Failed to write compressed data");
         } else {
-            // No compression: directly serialize the object body to the stream
-            std::stringstream tempBuffer(std::ios::binary | std::ios::out);
-            serializeBody(serializable, tempBuffer);
-            const std::string serializedData = tempBuffer.str();
+            // ---- NO COMPRESSION ----
 
-            stream.write(serializedData.data(), static_cast<long>(serializedData.size()));
+            // A) Compute checksum on uncompressed data
+            uint64_t checksum = computeChecksum(uncompressedData.data(), uncompressedSize);
 
-            // Compute checksum (CRC32)
-            uLong crc32Checksum = crc32(0L, Z_NULL, 0);
-            crc32Checksum = crc32(crc32Checksum, reinterpret_cast<const Bytef*>(serializedData.data()), serializedData.size());
-            stream.write(reinterpret_cast<const char*>(&crc32Checksum), sizeof(crc32Checksum));
+            // B) Write uncompressed bytes + checksum
+            writeAll(stream, uncompressedData.data(), uncompressedSize,
+                     "Failed to write uncompressed data");
+            writeAll(stream, &checksum, sizeof(checksum),
+                     "Failed to write checksum");
         }
     }
 } //namespace serialize::core

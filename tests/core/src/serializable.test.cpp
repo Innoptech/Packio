@@ -63,7 +63,7 @@ TEST_CASE("Data corruption in signature", "[packio]")
 
     // Attempt to deserialize the corrupted data
     REQUIRE_THROWS_WITH(packio::deserialize<TestMock1>(corruptedStream),
-                        Catch::Matchers::ContainsSubstring("Attempt to deserialize an unrecognised serializable"));
+                        Catch::Matchers::ContainsSubstring("Attempt to deserialize an unrecognized serializable"));
 }
 
 TEST_CASE("Data corruption in body", "[packio]")

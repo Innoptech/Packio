@@ -58,8 +58,8 @@ endif()
 #-------------------------------------------------------------------------------
 # Add external components
 #-------------------------------------------------------------------------------
-ReadDependencyVersion(zlib ${PYPROJECT_PATH})
-add_subdirectory(extern/zlib)
+ReadDependencyVersion(zstd ${PYPROJECT_PATH})
+add_subdirectory(extern/zstd)
 
 #-------------------------------------------------------------------------------
 # Add components & Package in simpler header files

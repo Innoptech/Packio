@@ -6,4 +6,4 @@ tag_format = "v$version"
 
 [tool.poetry.dependencies]
 catch2 = "v3.4.0"
-zlib = "v1.3.1"
+zstd = "v1.5.7"
