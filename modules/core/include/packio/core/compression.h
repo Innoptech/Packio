@@ -28,8 +28,8 @@ SOFTWARE.
 #include <sstream>
 #include <vector>
 #include <stdexcept>
-#include <array>
-#include <algorithm> // std::equal
+#include <algorithm> 
+#include <cstdint>
 
 
 namespace packio
