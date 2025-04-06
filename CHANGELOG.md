@@ -1,3 +1,9 @@
+## v0.3.3 (2025-04-06)
+
+### Fix
+
+- add validation for source stream
+
 ## v0.3.2 (2025-03-30)
 
 ### Fix
