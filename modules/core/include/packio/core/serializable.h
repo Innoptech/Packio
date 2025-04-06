@@ -165,6 +165,10 @@ namespace packio
     struct DeserializeHelper<U, MAJOR, MINOR, PATCH, T> {
         static U deserialize(std::istream& stream, const std::array<char, 16>& signature)
         {
+            if(stream.bad()){
+                throw std::runtime_error("Attempt to deserialize with a bad stream");
+            }
+
             // 1) Check signature
             std::array<char, 16> expectedSig = serializeSignature<T>();
             if (!std::equal(signature.begin(), signature.end(), expectedSig.begin())) {
@@ -295,6 +299,10 @@ namespace packio
     template<typename T, bool EnableCompression = true>
     inline void serialize(const T &serializable, std::ostream &stream)
     {
+        if(stream.bad()){
+            throw std::runtime_error("Attempt to serialize with a bad stream");
+        }
+
         // 1) Write out "signature" (unique ID for type T)
         auto signature = serializeSignature<T>();
         writeAll(stream, signature.data(), signature.size(),
