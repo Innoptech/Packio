@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.16)
 
 #-------------------------------------------------------------------------------
 # Project Definitions
@@ -19,11 +19,11 @@ ReadVersion(${PYPROJECT_PATH})
 #-------------------------------------------------------------------------------
 # COMPILATION
 #-------------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 ") #-fno-math-errno do not use -march=native with CUDA!(?)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 ")
 set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")

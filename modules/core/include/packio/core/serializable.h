@@ -264,8 +264,10 @@ namespace packio
     public:
         // Function to deserialize a Serializable type
         template<typename... Args>
-        requires (sizeof...(Args) > 0)
-        static auto deserialize(std::istream& stream, const std::string &minVersion="") {
+        static typename std::enable_if<(sizeof...(Args) > 0),
+                decltype(DeserializeHelper<U, MAJOR, MINOR, PATCH, Args...>::deserialize(
+                        std::declval<std::istream&>(), std::declval<std::array<char, 16>>()))>::type
+        deserialize(std::istream& stream, const std::string &minVersion="") {
             std::array<char, 16> signature{};
             stream.read(signature.data(), sizeof(char) * 16);
 
