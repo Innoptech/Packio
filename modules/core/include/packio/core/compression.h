@@ -30,6 +30,7 @@ SOFTWARE.
 #include <stdexcept>
 #include <algorithm> 
 #include <cstdint>
+#include <thread>
 
 
 namespace packio
@@ -77,8 +78,11 @@ namespace packio
         }
 
         // Set compression parameters
-        ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, ZSTD_maxCLevel()); // highest compression
-        ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, 4); // multi-threading
+        size_t nbWorkers = std::max(1u, std::thread::hardware_concurrency());
+        ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, static_cast<int>(nbWorkers));
+
+        // Set compression level (higher = slower, better compression)
+        ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, 2);  // or whatever level you want
 
         // Allocate output buffer
         size_t maxCompressedSize = ZSTD_compressBound(dataSize);
