@@ -1,3 +1,9 @@
+## v0.3.4 (2025-07-16)
+
+### Fix
+
+- make compression faster (less compressed)
+
 ## v0.3.3 (2025-04-06)
 
 ### Fix
